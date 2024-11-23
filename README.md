@@ -1,87 +1,88 @@
-# fc2ppvdb_ASVL (Auto Search Video Links)
+# fc2ppvdb_ASVL 
+-  fc2ppvdb Auto Search Video Links
+- fc2ppvdb 自動搜尋影片連結
 
-**fc2ppvdb_ASVL** 是一个专为 Chrome 浏览器和 Tampermonkey 插件设计的脚本。它能自动在多个资源站点（如 `_123av.com`、`missav.com`、`7mmtv.sx`、`javfc2.xyz`、`sukebei.nyaa.si` 和 `supjav.com`）上搜索视频资源，并在页面上生成快速跳转按钮。
+
+**fc2ppvdb_ASVL** 是專為 Google Chrome 瀏覽器及 Tampermonkey 插件設計的腳本工具。此腳本能夠自動在多個影片資源網站（例如 `_123av.com`、`missav.com`、`7mmtv.sx`、`javfc2.xyz`、`sukebei.nyaa.si` 和 `supjav.com`）中搜尋相關影片，並在頁面上自動生成快速跳轉按鈕。
 
 ---
 
-## 功能特点
+## 功能特點
 
-- **多站点支持**：
-  - 自动在以下资源站点中搜索：
+- **多站點支援**：
+  - 自動搜尋以下影片資源網站：
     - `_123av.com`
     - `missav.com`
     - `7mmtv.sx`
     - `javfc2.xyz`
     - `sukebei.nyaa.si`
     - `supjav.com`
-- **自动化搜索**：
-  - 根据 `fc2ppvdb` 页面中的视频编号，自动进行资源搜索。
-- **结果快速跳转**：
-  - 搜索成功后，生成一个彩色按钮，点击即可快速打开搜索结果。
-- **优化性能**：
-  - 支持多站点并发搜索（默认并发 3 个站点）。
-  - 引入缓存机制，提高效率，避免重复搜索。
-- **Chrome 专属**：
-  - 专为 Chrome 浏览器和 Tampermonkey 插件设计，确保兼容性和性能。
+- **全自動搜尋**：
+  - 根據 `fc2ppvdb` 網頁上的影片編號，自動搜尋多個站點的資源。
+- **快速跳轉結果**：
+  - 搜尋成功後，會在頁面上生成彩色按鈕，點擊即可於新標籤頁打開搜尋結果。
+- **高性能與快取**：
+  - 支援多站點並行搜尋（預設最多同時搜尋 3 個站點）。
+  - 自動快取搜尋結果，提升效率，避免重複搜尋。
+- **專屬 Google Chrome 支援**：
+  - 專門針對 Google Chrome 瀏覽器及 Tampermonkey 插件進行優化，確保穩定性與流暢性。
 
 ---
 
-## 安装方法
+## 安裝方法
 
-### 1. 安装 Tampermonkey 插件
+### 第一步：安裝 Tampermonkey 插件
 
-**Tampermonkey** 是 Chrome 浏览器的用户脚本管理器。您可以通过以下步骤安装：
+1. 打開 Google Chrome 瀏覽器。
+2. 前往 [Tampermonkey 官方擴展頁面](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)。
+3. 點擊 **「添加到 Chrome」** 按鈕，並完成安裝。
 
-1. 打开 Chrome 浏览器。
-2. 前往 [Tampermonkey 官方扩展页面](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)。
-3. 点击 **添加到 Chrome** 按钮，安装扩展。
+### 第二步：安裝腳本
 
-### 2. 安装脚本
-
-1. 安装完 Tampermonkey 后，点击浏览器右上角的 Tampermonkey 图标。
-2. 选择 **“创建新脚本”**。
-3. 将脚本代码复制粘贴到编辑器中。
-4. 保存脚本，然后返回 **fc2ppvdb** 网站，确保脚本正常运行。
+1. 安裝完成 Tampermonkey 後，點擊瀏覽器右上角的 Tampermonkey 圖示。
+2. 選擇 **「創建新腳本」**。
+3. 將腳本代碼複製並貼到編輯器中。
+4. 保存腳本，然後打開 **[fc2ppvdb.com](https://fc2ppvdb.com/)**，確認腳本是否正常執行。
 
 ---
 
 ## 使用方法
 
-1. 打开 **[fc2ppvdb.com](https://fc2ppvdb.com/)**。
-2. 脚本会自动扫描页面上的视频编号。
-3. 对每个视频编号，脚本会在支持的资源站点中搜索资源：
-   - 如果找到资源，页面上会生成一个跳转按钮。
-   - 点击按钮即可在新标签页中打开对应站点的搜索结果页面。
-4. 如果没有结果，则不会生成按钮。
+1. 打開 **[fc2ppvdb.com](https://fc2ppvdb.com/)**。
+2. 腳本會自動掃描頁面上的影片編號。
+3. 對於每個影片編號，腳本會在支援的站點中進行搜尋：
+   - 如果找到結果，頁面上會生成一個彩色按鈕。
+   - 點擊按鈕即可快速跳轉到對應站點的搜尋結果頁面。
+4. 如果沒有結果，則不會生成按鈕。
 
 ---
 
-## 支持站点
+## 支援站點
 
-以下是脚本目前支持的资源站点：
+以下是目前支援的影片資源網站：
 
-| 网站名称          | 描述                     |
-|-------------------|--------------------------|
-| `_123av.com`      | 提供多种视频资源搜索      |
-| `missav.com`      | 包含大量视频详细信息      |
-| `7mmtv.sx`        | 视频资源资源站点          |
-| `javfc2.xyz`      | 专注于 FC2 视频搜索       |
-| `sukebei.nyaa.si` | 种子资源搜索平台          |
-| `supjav.com`      | 提供 SupJav 视频搜索支持  |
+| 網站名稱            | 描述                     |
+|---------------------|--------------------------|
+| `_123av.com`        | 提供多種影片資源搜尋      |
+| `missav.com`        | 包含大量影片詳細資訊      |
+| `7mmtv.sx`          | 影片資源搜尋站點          |
+| `javfc2.xyz`        | 專注於 FC2 影片搜尋       |
+| `sukebei.nyaa.si`   | 種子資源搜尋平台          |
+| `supjav.com`        | 提供 SupJav 搜尋支援      |
 
 ---
 
-## 默认设置
+## 預設設定
 
-脚本默认启用了所有站点的搜索功能，并发搜索数量为 3。以下是默认设置：
+腳本默認啟用了所有站點的搜尋功能，並發搜尋數量為 3。以下是預設設定：
 
 ```javascript
 const defaultSettings = {
-    enable_123av: true,     // 启用 _123av 搜索
-    enableMissAV: true,     // 启用 missav 搜索
-    enable7MMTV: true,      // 启用 7mmtv 搜索
-    enableJAVFC2: true,     // 启用 javfc2 搜索
-    enableSukebei: true,    // 启用 sukebei 搜索
-    enableSupJav: true,     // 启用 supjav 搜索
-    maxConcurrentSearches: 3, // 默认并发搜索数量
+    enable_123av: true,     // 啟用 _123av 搜尋
+    enableMissAV: true,     // 啟用 missav 搜尋
+    enable7MMTV: true,      // 啟用 7mmtv 搜尋
+    enableJAVFC2: true,     // 啟用 javfc2 搜尋
+    enableSukebei: true,    // 啟用 sukebei 搜尋
+    enableSupJav: true,     // 啟用 supjav 搜尋
+    maxConcurrentSearches: 3, // 預設並行搜尋數量
 };
