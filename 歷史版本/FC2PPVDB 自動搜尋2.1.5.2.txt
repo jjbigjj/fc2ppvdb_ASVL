@@ -1,0 +1,417 @@
+// ==UserScript==
+// @name         FC2PPVDB 自動搜尋並添加鏈接 (簡化版)
+// @namespace
+// @version      2.1.5.2
+// @description  自動搜尋 SupJav,_123av.com、missav.com、7mmtv.sx、javfc2.xyz 和 sukebei.nyaa.si，當有搜尋結果時會加個按鈕，按鈕會喺新標籤頁打開。搜尋網站與按鈕鏈接網站可分開設定。每個網站的查詢隊列可以控制同時查詢的上限。
+// @author       Your Name
+// @match        *://*.fc2ppvdb.com/*
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @run-at       document-end
+// @connect      123av.com
+// @connect      missav.com
+// @connect      7mmtv.sx
+// @connect      javfc2.xyz
+// @connect      sukebei.nyaa.si
+// @connect      supjav.com
+// ==/UserScript==
+(function () {
+    'use strict';
+
+    // 預設嘅設定
+    const defaultSettings = {
+        enable_123av: true,
+        enableMissAV: true,
+        enable7MMTV: true,
+        enableJAVFC2: true,
+        enableSukebei: true,
+        enableSupJav: true,
+        maxConcurrentSearches: 3,
+    };
+
+    const searchCache = new Map();
+    const queues = {
+        _123av: [],
+        MissAV: [],
+        MM7TV: [],
+        JAVFC2: [],
+        Sukebei: [],
+        SupJav: [], // 新增 SupJav 隊列
+    };
+
+    const isSearching = {
+        _123av: 0,
+        MissAV: 0,
+        MM7TV: 0,
+        JAVFC2: 0,
+        Sukebei: 0,
+        SupJav: 0, // SupJav 搜索狀態
+    };
+
+    const queryIntervals = {
+        _123av: 0,
+        MissAV: 0,
+        MM7TV: 0,
+        JAVFC2: 0,
+        Sukebei: 100,
+        SupJav: 0, // SupJav 預設查詢間隔
+    };
+
+    const maxConcurrentSearches = {
+        _123av: defaultSettings.maxConcurrentSearches,
+        MissAV: defaultSettings.maxConcurrentSearches,
+        MM7TV: defaultSettings.maxConcurrentSearches,
+        JAVFC2: defaultSettings.maxConcurrentSearches,
+        Sukebei: defaultSettings.maxConcurrentSearches,
+        SupJav: defaultSettings.maxConcurrentSearches, // SupJav 查詢上限
+    };
+
+    // 添加到查詢隊列
+    function addToQueue(siteName, id, element, searchFunc, linkFunc) {
+        // 如果查詢間隔為 0，直接立即處理，不使用隊列
+        if (queryIntervals[siteName] === 0) {
+            searchFunc(id, element, linkFunc);
+        } else {
+            queues[siteName].push({ id, element, searchFunc, linkFunc });
+
+            // 如果當前正在進行的查詢數量小於最大查詢上限，則開始處理隊列
+            if (isSearching[siteName] < maxConcurrentSearches[siteName]) {
+                processQueue(siteName);
+            }
+        }
+    }
+
+    // 處理查詢隊列
+    function processQueue(siteName) {
+        if (queues[siteName].length === 0 || isSearching[siteName] >= maxConcurrentSearches[siteName]) {
+            return;
+        }
+
+        // 取出隊列中的第一個查詢
+        const { id, element, searchFunc, linkFunc } = queues[siteName].shift();
+
+        // 增加正在進行的查詢數量
+        isSearching[siteName]++;
+
+        // 執行查詢
+        searchFunc(id, element, linkFunc).then(() => {
+            // 查詢完成後，減少正在進行的查詢數量
+            isSearching[siteName]--;
+
+            // 查詢完成後，等待該網站設置的毫秒數，再進行下一個查詢
+            setTimeout(() => {
+                processQueue(siteName);
+            }, queryIntervals[siteName]);
+        });
+
+        // 檢查是否可以立即處理下一個查詢
+        if (isSearching[siteName] < maxConcurrentSearches[siteName] && queues[siteName].length > 0) {
+            processQueue(siteName);
+        }
+    }
+
+    // 搵出所有包含編號嘅元素
+    const elements = document.querySelectorAll("span.absolute.top-0.left-0");
+
+    elements.forEach(element => {
+        const id = element.textContent.trim(); // 攞返編號文字，順便剪走多餘嘅空格
+
+        addToQueue('_123av', id, element, search_123av, add_123avButton);
+        addToQueue('MissAV', id, element, searchMissAV, addMissAVButton);
+        addToQueue('MM7TV', id, element, search7MMTV, add7MMTVButton);
+        addToQueue('JAVFC2', id, element, searchJAVFC2, addJAVFC2Button);
+        addToQueue('Sukebei', id, element, searchSukebei, addSukebeiButton);
+        addToQueue('SupJav', id, element, searchSupJav, addSupJavButton);
+    });
+
+    // 通用搜尋主函數
+    function search_Main(id, element, cacheKey, searchUrl, showLoading, responseCallback, linkFunc) {
+        return new Promise((resolve) => {
+            const cachedResult = getCachedResult(cacheKey);
+            if (cachedResult) {
+                if (cachedResult.url) {
+                    linkFunc(cachedResult, element);  // 使用相應的按鈕生成函數
+                }
+                resolve(); // 結束當前查詢
+                return;
+            }
+
+            const loadingElement = showLoading(element);
+
+            function doSearch(retryCount = 0) {
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: searchUrl,
+                    onload: function (response) {
+                        if (response.status === 200) {
+                            let previewData = { thumbnail: '', title: '', url: '' }; // 預設係空白數據
+
+                            responseCallback(response, previewData);
+                            if (previewData.url) {
+                                linkFunc(previewData, element);  // 使用相應的按鈕生成函數
+                            }
+
+                            removeLoading(loadingElement);
+                            setCachedResult(cacheKey, previewData); // 即使係空白結果都要緩存
+                        resolve(); // 查詢結束，處理下一個
+                        }
+                    },
+                    onerror: function () {
+                        removeLoading(loadingElement);
+                        console.error(`${cacheKey} 搜尋失敗`);
+                        resolve(); // 即使失敗也要結束查詢
+                    },
+                    onreadystatechange: function (response) {
+                        if (response.readyState === 4 && response.status === 429 && retryCount < 10) {
+                            console.warn(`${cacheKey} 搜尋被限流，5秒後重試...`);
+                            setTimeout(() => doSearch(retryCount + 1), 5000);
+                        }
+                    }
+                });
+            }
+
+            doSearch();
+        });
+    }
+
+    // 搜尋 _123av 網站
+    function search_123av(id, element, linkFunc) {
+        const cacheKey = `_123av_${id}`;
+        const searchUrl = `https://123av.com/zh/search?keyword=${id}`;
+
+        return search_Main(
+            id,
+            element,
+            cacheKey,
+            searchUrl,
+            (element) => showLoading(element, "_123av"),
+            (response, previewData) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(response.responseText, "text/html");
+                const videoCount = doc.querySelector(".text-muted").textContent.trim();
+
+                if (videoCount !== "0 视频") {
+                    previewData.url = searchUrl;
+                }
+            },
+            linkFunc  // 按鈕生成函數
+        );
+    }
+
+    // 搜尋 MissAV 網站
+    function searchMissAV(id, element, linkFunc) {
+        const cacheKey = `MissAV_${id}`;
+        const searchUrl = `https://missav.com/search/${id}`;
+
+        return search_Main(
+            id,
+            element,
+            cacheKey,
+            searchUrl,
+            (element) => showLoading(element, "MissAV"),
+            (response, previewData) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(response.responseText, "text/html");
+                const matchingLink = Array.from(doc.querySelectorAll('a[alt]')).find(a => {
+                    const altText = a.getAttribute('alt').toLowerCase();
+                    const linkText = a.textContent.toLowerCase();
+                    return altText.includes(id.toLowerCase()) && linkText.includes(id.toLowerCase());
+                });
+
+                if (matchingLink) {
+                    previewData.url = searchUrl;
+                }
+            },
+            linkFunc  // 按鈕生成函數
+        );
+    }
+
+    // 搜尋 7MMTV 網站
+    function search7MMTV(id, element, linkFunc) {
+        const cacheKey = `7MMTV_${id}`;
+        const searchUrl = `https://7mmtv.sx/zh/searchform_search/all/index.html?search_keyword=${encodeURIComponent(id)}&search_type=searchall&op=search`;
+
+        return search_Main(
+            id,
+            element,
+            cacheKey,
+            searchUrl,
+            (element) => showLoading(element, "7MMTV"),
+            (response, previewData) => {
+                const responseText = response.responseText;
+                const matchResult = responseText.match(new RegExp(`搜索 "${id}" \\((\\d+)\\)`));
+
+                if (matchResult && parseInt(matchResult[1]) > 0) {
+                    previewData.url = searchUrl;
+                }
+            },
+            linkFunc  // 按鈕生成函數
+        );
+    }
+
+    // 搜尋 javfc2.xyz 網站
+    function searchJAVFC2(id, element, linkFunc) {
+        const cacheKey = `JAVFC2_${id}`;
+        const searchUrl = `https://javfc2.xyz/search?q=${id}`;
+
+        return search_Main(
+            id,
+            element,
+            cacheKey,
+            searchUrl,
+            (element) => showLoading(element, "javfc2"),
+            (response, previewData) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(response.responseText, "text/html");
+                const h4Elements = doc.querySelectorAll('h4');
+                const nothingFound = Array.from(h4Elements).find(h4 => h4.textContent.includes("Nothing found by"));
+
+                if (!nothingFound) {
+                    previewData.url = searchUrl;
+                }
+            },
+            linkFunc  // 按鈕生成函數
+        );
+    }
+
+    // 搜尋 Sukebei Nyaa 網站 (使用 RSS 格式查詢)
+    function searchSukebei(id, element, linkFunc) {
+        const cacheKey = `Sukebei_${id}`;
+        const searchUrl = `https://sukebei.nyaa.si/?page=rss&q=${encodeURIComponent(id)}&c=0_0&f=0`;
+
+        return search_Main(
+            id,
+            element,
+            cacheKey,
+            searchUrl,
+            (element) => showLoading(element, "Sukebei"),
+            (response, previewData) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(response.responseText, "text/xml");
+                const items = doc.querySelectorAll("item");
+
+                if (items.length > 0) {
+                    previewData.url = `https://sukebei.nyaa.si/?f=0&c=0_0&q=${encodeURIComponent(id)}&s=seeders&o=desc`; // 按鈕鏈接指向不同的網址
+                }
+            },
+            linkFunc  // 按鈕生成函數
+        );
+    }
+
+    function searchSupJav(id, element, linkFunc) {
+        const cacheKey = `SupJav_${id}`;
+        const searchUrl = `https://supjav.com/?s=${id}`;
+
+        return search_Main(
+            id,
+            element,
+            cacheKey,
+            searchUrl,
+            (element) => showLoading(element, "SupJav"),
+            (response, previewData) => {
+                const responseText = response.responseText;
+
+                // 使用 DOMParser 解析 HTML 内容
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(responseText, "text/html");
+
+                // 查找 <h1> 元素
+                const h1Element = doc.querySelector("h1");
+                if (h1Element) {
+                    const textContent = h1Element.textContent.trim(); // 获取 <h1> 的文本内容
+
+                    // 检查是否包含 "Search Result For: ID" 和结果数量
+                    if (textContent.includes(`Search Result For: ${id}`)) {
+                        const resultCount = textContent.match(/\((\d+)\)/); // 提取括号内的数字
+                        if (resultCount && parseInt(resultCount[1]) > 0) {
+                            previewData.url = searchUrl; // 如果结果数量大于 0，设置链接
+                        }
+                    }
+                }
+            },
+            linkFunc
+        );
+    }
+
+    // 加入 _123av 嘅按鈕
+    function add_123avButton(previewData, element) {
+        const linkButton = createButton(previewData.url, '_123av', 'bg-blue-500');
+        element.parentElement.parentElement.appendChild(linkButton);
+    }
+
+    // 加入 MissAV 嘅按鈕
+    function addMissAVButton(previewData, element) {
+        const linkButton = createButton(previewData.url, 'MissAV', 'bg-green-500');
+        element.parentElement.parentElement.appendChild(linkButton);
+    }
+
+    // 加入 7MMTV 嘅按鈕
+    function add7MMTVButton(previewData, element) {
+        const linkButton = createButton(previewData.url, '7MMTV', 'bg-red-500');
+        element.parentElement.parentElement.appendChild(linkButton);
+    }
+
+    // 加入 javfc2 嘅按鈕
+    function addJAVFC2Button(previewData, element) {
+        const linkButton = createButton(previewData.url, 'javfc2', 'bg-purple-500');
+        element.parentElement.parentElement.appendChild(linkButton);
+    }
+
+    // 加入 Sukebei 嘅按鈕
+    function addSukebeiButton(previewData, element) {
+        const linkButton = createButton(previewData.url, 'Sukebei', 'bg-yellow-500');
+        element.parentElement.parentElement.appendChild(linkButton);
+    }
+    function addSupJavButton(previewData, element) {
+        const linkButton = createButton(previewData.url, 'SupJav', 'bg-orange-500');
+        element.parentElement.parentElement.appendChild(linkButton);
+    }
+
+    // 創建通用嘅按鈕
+    function createButton(url, text, bgColorClass) {
+        const linkButton = document.createElement("a");
+        linkButton.href = url;
+        linkButton.textContent = text;
+        linkButton.className = `inline-block ${bgColorClass} text-white px-2 py-1 rounded mt-2 ml-2`;
+        linkButton.target = "_blank";
+        return linkButton;
+    }
+
+    // 顯示加載提示
+	function showLoading(element, siteName) {
+		const loadingText = document.createElement("span");
+		loadingText.textContent = `搵緊 ${siteName}...`;  // Display which site is being searched
+		loadingText.className = "inline-block text-gray-500 ml-2";
+		element.parentElement.parentElement.appendChild(loadingText);
+		return loadingText;
+	}
+
+    // 移除加載提示
+    function removeLoading(loadingElement) {
+        loadingElement.remove();
+    }
+
+    // 緩存結果並設置過期時間
+    function setCachedResult(key, data) {
+        const timestamp = new Date().getTime();
+        const expiry = timestamp + 12 * 60 * 60 * 1000; // 12小時過期
+        const cacheData = { data, expiry };
+        searchCache.set(key, cacheData);
+        GM_setValue(key, cacheData);
+    }
+
+    // 攞返緩存結果，如果過期就冇得攞
+    function getCachedResult(key) {
+        const cacheData = searchCache.get(key) || GM_getValue(key, null);
+        if (!cacheData) return null;
+
+        const timestamp = new Date().getTime();
+        if (cacheData.expiry < timestamp) {
+            searchCache.delete(key);
+            GM_setValue(key, null);
+            return null;
+        }
+        return cacheData.data;
+    }
+})();
