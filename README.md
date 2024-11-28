@@ -77,9 +77,185 @@
 
 ---
 
-## **配置選項**
+# **開發者指南 (DEVELOPER GUIDE)**
 
-### **1. 最大並行搜索數量**
-每個站點的最大並行搜索數量默認為 3，可以在腳本內調整：
+## **簡介**
+此文檔專為 **fc2ppvdb_ASVL** 腳本的開發者和貢獻者設計，幫助你理解腳本的架構、主要功能模塊以及如何擴展支持新的站點或自定義功能。
+
+---
+
+## **項目架構**
+
+腳本採用了 **面向對象編程 (OOP)** 的設計，主要分為以下模塊：
+
+1. **Utils 工具類**：
+   - 提供常用的輔助工具函數，例如顯示/移除加載提示、創建按鈕、緩存數據等。
+   - 文件中的靜態方法可以直接調用，不需要實例化。
+2. **Site 類**：
+   - 每個支持的影片資源站點會實例化為一個 `Site` 對象。
+   - 包含站點的搜索 URL、響應處理邏輯和按鈕生成邏輯。
+3. **SearchManager 管理類**：
+   - 作為統一的管理中心，負責管理多個站點的搜索任務。
+   - 將 FC2PPVDB 的影片編號分配給各個站點進行搜索，並處理結果。
+4. **主腳本邏輯**：
+   - 創建 `SearchManager` 實例，初始化所有站點，並啟動搜索。
+
+---
+
+## **腳本架構細節**
+
+### **1. Utils 工具類**
+工具類包含常用的靜態方法，代碼位於腳本的開頭部分。以下是主要方法的介紹：
+
+- **`showLoading(element, siteName)`**
+  - 用於在指定的 HTML 元素旁顯示加載提示。
+  - **參數**：
+    - `element`：目標 HTML 元素。
+    - `siteName`：站點名稱。
+  - **返回值**：
+    - 返回創建的加載提示元素。
+  - **示例**：
+    ```javascript
+    const loadingElement = Utils.showLoading(targetElement, '123av.com');
+    ```
+
+- **`removeLoading(loadingElement)`**
+  - 用於移除指定的加載提示。
+  - **參數**：
+    - `loadingElement`：需要移除的加載提示元素。
+  - **示例**：
+    ```javascript
+    Utils.removeLoading(loadingElement);
+    ```
+
+- **`createButton(url, text, bgColorClass)`**
+  - 用於創建一個跳轉按鈕。
+  - **參數**：
+    - `url`：按鈕的目標鏈接。
+    - `text`：按鈕的顯示文字。
+    - `bgColorClass`：按鈕的背景顏色樣式。
+  - **返回值**：
+    - 返回生成的按鈕元素。
+  - **示例**：
+    ```javascript
+    const button = Utils.createButton('https://example.com', '跳轉', 'bg-blue-500');
+    ```
+
+- **`cacheResult(key, data, expiryHours)`**
+  - 用於將搜索結果緩存到瀏覽器中。
+  - **參數**：
+    - `key`：緩存鍵。
+    - `data`：需要緩存的數據。
+    - `expiryHours`：緩存過期時間（默認 12 小時）。
+  - **示例**：
+    ```javascript
+    await Utils.cacheResult('123av_abc123', { url: 'https://123av.com' });
+    ```
+
+- **`getCachedResult(key)`**
+  - 用於獲取緩存的搜索結果。
+  - **參數**：
+    - `key`：緩存鍵。
+  - **返回值**：
+    - 返回緩存的數據或 `null`。
+  - **示例**：
+    ```javascript
+    const cachedData = await Utils.getCachedResult('123av_abc123');
+    ```
+
+---
+
+### **2. Site 類**
+`Site` 類負責處理每個站點的搜索邏輯和響應解析。以下是關鍵屬性和方法：
+
+- **屬性**
+  - `name`：站點名稱。
+  - `searchUrlFunc`：生成搜索 URL 的函數。
+  - `responseHandler`：處理搜索結果響應的函數。
+  - `buttonColor`：按鈕的背景顏色。
+  - `queue`：搜索任務隊列。
+  - `maxConcurrentSearches`：最大並行搜索數量。
+  - `queryInterval`：搜索間隔時間。
+
+- **方法**
+  - **`addToQueue(id, element)`**
+    - 將搜索任務添加到隊列中。
+    - **參數**：
+      - `id`：影片編號。
+      - `element`：目標 HTML 元素。
+    - **示例**：
+      ```javascript
+      site.addToQueue('FC2PPV-123456', targetElement);
+      ```
+
+  - **`processQueue()`**
+    - 處理搜索隊列，控制並行請求數量和搜索間隔。
+    - 自動調用 `search` 方法執行搜索。
+
+  - **`search(id, element)`**
+    - 發送搜索請求並處理結果。
+    - **參數**：
+      - `id`：影片編號。
+      - `element`：目標 HTML 元素。
+
+  - **`addButton(element, url)`**
+    - 在指定元素旁生成按鈕。
+    - **參數**：
+      - `element`：目標 HTML 元素。
+      - `url`：按鈕跳轉的目標鏈接。
+
+---
+
+### **3. SearchManager 管理類**
+`SearchManager` 是腳本的核心管理模塊，負責統一管理多個站點的搜索任務。
+
+- **屬性**
+  - `sites`：存儲所有站點的數組。
+
+- **方法**
+  - **`addSite(site)`**
+    - 添加新的站點實例到 `sites` 中。
+    - **參數**：
+      - `site`：需要添加的 `Site` 實例。
+    - **示例**：
+      ```javascript
+      manager.addSite(new Site('123av', searchUrlFunc, responseHandler, 'bg-blue-500'));
+      ```
+
+  - **`initializeSearch()`**
+    - 初始化搜索流程，掃描頁面上的影片編號並分配搜索任務。
+    - **示例**：
+      ```javascript
+      manager.initializeSearch();
+      ```
+
+---
+
+## **如何新增站點**
+
+### **步驟 1：定義搜索邏輯**
+1. 創建一個新的 `Site` 實例。
+2. 實現 `searchUrlFunc` 函數，用於生成搜索 URL。
+3. 實現 `responseHandler` 函數，用於處理搜索結果。
+
+### **步驟 2：將站點添加到 SearchManager**
+在主腳本中，調用 `manager.addSite()`，並傳入新建的 `Site` 實例。
+
+### **示例**
+以下是新增站點的完整示例：
 ```javascript
-new Site(name, searchUrlFunc, responseHandler, buttonColor, queryInterval, maxConcurrentSearches);
+manager.addSite(new Site(
+    'NewSite',
+    id => `https://newsite.com/search?q=${id}`, // 搜索 URL 函數
+    (response, id, previewData) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(response.responseText, "text/html");
+        const result = doc.querySelector('a.result'); // 假設搜索結果的鏈接標籤為 <a class="result">
+        if (result) {
+            previewData.url = result.href; // 提取結果 URL
+        }
+    },
+    'bg-green-500', // 按鈕的背景顏色
+    1000, // 搜索間隔（毫秒）
+    5 // 最大並行搜索數量
+));
