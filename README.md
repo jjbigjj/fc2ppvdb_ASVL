@@ -2,7 +2,7 @@
 - **fc2ppvdb Auto Search Video Links**
 - **fc2ppvdb 自動搜尋影片連結**
 
-**fc2ppvdb_ASVL** 是一款專為 **Google Chrome 瀏覽器** 和 **Violentmonkey/Tampermonkey 插件** 設計的用戶腳本工具。此腳本可以自動在多個影片資源網站（例如 `_123av.com`、`missav.com`、`7mmtv.sx`、`javfc2.xyz`、`sukebei.nyaa.si` 和 `supjav.com`）中搜尋相關影片，並在頁面上生成快速跳轉按鈕，提升用戶搜尋效率。
+**fc2ppvdb_ASVL** 是一款專為 **Google Chrome 瀏覽器** 和 **Violentmonkey/Tampermonkey 插件** 設計的用戶腳本工具。此腳本可以自動在多個影片資源網站（例如 `_123av.com`、`missav.ws`、`7mmtv.sx`、`javfc2.xyz`、`sukebei.nyaa.si` 和 `supjav.com`）中搜尋相關影片，並在頁面上生成快速跳轉按鈕，提升用戶搜尋效率。
 
 ---
 
@@ -11,7 +11,7 @@
 - **多站點支援**：
   - 自動搜尋以下影片資源網站：
     - `_123av.com`
-    - `missav.com`
+    - `missav.ws`
     - `7mmtv.sx`
     - `javfc2.xyz`
     - `sukebei.nyaa.si`
