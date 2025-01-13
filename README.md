@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/367061c3-cadd-4996-aa89-3901e6232c3b)# **fc2ppvdb_ASVL**
+**fc2ppvdb_ASVL**
 - **fc2ppvdb Auto Search Video Links**
 - **fc2ppvdb 自動搜尋影片連結**
 
